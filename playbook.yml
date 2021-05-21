@@ -1,28 +1,35 @@
 ---
-- name: Afficher Hello World
+- name: Deploy python program
   hosts: all
-  remote_user: root
-
   become: yes
+
   tasks:
-    - name: installation Java
-      shell: amazon-linux-extras install -y python app.py
+#    - name: Execute the command in remote shell; stdout goes to the specified file on the remote.
+#      shell: echo "HelloWorld" > log.txt
+    - name: Installation de python
+      shell: amazon-linux-extras install -y python :3.8
       register: result_install
+
     - debug:
         var=result_install
-    - name: create a directory
-      file:
+
+    - name: Création du dossier /app sur la machine distante
+      #shell: mkdir -p /app && chmod -R 777 /app && chown ec2-user /app
+      file: #mieux car idempotent par rapport au module shell
         path: /app
         state: directory
         mode: 0777
         owner: ec2-user
-    - name: copy a local helloWorld.class to the remote /app
+
+    - name: "Copier (faire un scp) le fichier local helloWorld.class sur le dossier remote /app"
       copy:
-        src: helloWorld.class
+        src: projetPython
         dest: /app
         mode: 0644
-    - name: execute java helloWorld.class
-      shell: cd /app && java helloWorld
+    - name: On execute le fichier helloWorld.class
+      shell: cd /app && ProjetPython
+      #On prend tout ce qui est du stdout et on le met dans la variable result
       register: result
+
     - debug:
         var=result
