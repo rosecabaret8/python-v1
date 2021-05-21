@@ -1,33 +1,54 @@
----
-- name: Deploy python program
+- name: Deploy python app
   hosts: all
   become: yes
 
   tasks:
-    - name: Installation de python
-      shell: amazon-linux-extras install -y python :3.8
+    - name: Installation de Docker et démarrage de docker
+      shell: amazon-linux-extras install -y docker && systemctl start docker
+      register: result_install
+
+    - debug:
+        var=result_install
+
+    - name: Installation de python3
+      shell: amazon-linux-extras install -y python3.8
       register: result_install
 
     - debug:
         var=result_install
 
     - name: Création du dossier /app sur la machine distante
-      #shell: mkdir -p /app && chmod -R 777 /app && chown ec2-user /app
-      file: #mieux car idempotent par rapport au module shell
+      file:
         path: /app
         state: directory
         mode: 0777
         owner: ec2-user
 
-    - name: "Copier (faire un scp) le fichier local sur le dossier  /app"
+    - name: Copier (faire un scp) l'archive sur le dossier remote /app
       copy:
-        src: projetPython
+        src: projetPython.tar.gz
         dest: /app
         mode: 0644
-    - name: On execute le fichier app.py
-      shell: cd /app && ProjetPython
+
+    - name: "Copier (faire un scp) le fichier local Dockerfile sur le dossier remote /app"
+      copy:
+        src: Dockerfile
+        dest: /app
+        mode: 0644
+
+    - name: On genere l'image docker, on l'appelle projetPython/pytest:1.0
+      shell: cd /app && docker build -t projetPython/pytest:1.0 .
       #On prend tout ce qui est du stdout et on le met dans la variable result
       register: result
-
     - debug:
         var=result
+
+
+    - name: On execute le contenur de l'image docker rojetPython/pytest:1.0
+      shell: docker run -d -p 5000:5000 --rm --name conteneur_app projetPython/pytest:1.0
+      #On prend tout ce qui est du stdout et on le met dans la variable result
+      register: result
+    - debug:
+        var=result
+
+ 
